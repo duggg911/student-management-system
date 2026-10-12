@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Management System</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 30px; font-family: Arial, sans-serif;
+      background: #f1f5f9; color: #1e293b;
+    }
+    main { max-width: 900px; margin: auto; }
+    h1 { color: #1d4ed8; }
+    .panel {
+      background: white; padding: 22px; border-radius: 12px;
+      margin: 20px 0; box-shadow: 0 3px 12px #0000000c;
+    }
+    form { display: flex; flex-wrap: wrap; gap: 10px; }
+    input, button {
+      padding: 12px; border: 1px solid #cbd5e1; border-radius: 7px;
+    }
+    input { flex: 1; min-width: 150px; }
+    button { cursor: pointer; background: #2563eb; color: white; border: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background: #eff6ff; }
+    .delete { background: #dc2626; }
+    .edit { background: #475569; margin-right: 5px; }
+    #message { margin-top: 12px; }
+    @media(max-width: 600px) {
+      body { padding: 14px; }
+      .panel { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Student Management System</h1>
+  <p>Manage student records in one place.</p>
+
+  <section class="panel">
+    <h2 id="formTitle">Add New Student</h2>
+    <form id="studentForm">
+      <input id="name" placeholder="Student name" required>
+      <input id="rollNo" placeholder="Roll number" required>
+      <input id="course" placeholder="Course" required>
+      <button id="submitBtn" type="submit">Add Student</button>
+      <button id="cancelBtn" type="button" hidden>Cancel Edit</button>
+    </form>
+    <p id="message" role="status"></p>
+  </section>
+
+  <section class="panel">
+    <h2>Student Records</h2>
+    <p id="count">Loading students...</p>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Roll No.</th><th>Course</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="studentList"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+  const form = document.getElementById("studentForm");
+  const list = document.getElementById("studentList");
+  const message = document.getElementById("message");
+  let editingId = null;
+  let students = [];
+
+  async function request(url, options) {
+    const response = await fetch(url, options);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Request failed");
+    return data;
+  }
+
+  async function loadStudents() {
+    try {
+      students = await request("/api/students");
+      list.replaceChildren();
+
+      students.forEach(student => {
+        const row = document.createElement("tr");
+
+        [student.name, student.rollNo, student.course].forEach(value => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        });
+
+        const actions = document.createElement("td");
+        const edit = document.createElement("button");
+        edit.textContent = "Edit";
+        edit.className = "edit";
+        edit.onclick = () => {
+          editingId = student.id;
+          document.getElementById("name").value = student.name;
+          document.getElementById("rollNo").value = student.rollNo;
+          document.getElementById("course").value = student.course;
+          document.getElementById("formTitle").textContent = "Edit Student";
+          document.getElementById("submitBtn").textContent = "Update Student";
+          document.getElementById("cancelBtn").hidden = false;
+        };
+
+        const remove = document.createElement("button");
+        remove.textContent = "Delete";
+        remove.className = "delete";
+        remove.onclick = async () => {
+          if (!confirm("Delete this student?")) return;
+          try {
+            await request(`/api/students/${student.id}`, { method: "DELETE" });
+            message.textContent = "Student deleted successfully.";
+            await loadStudents();
+          } catch (error) {
+            message.textContent = error.message;
+          }
+        };
+
+        actions.append(edit, remove);
+        row.appendChild(actions);
+        list.appendChild(row);
+      });
+
+      document.getElementById("count").textContent =
+        `Total students: ${students.length}`;
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  }
+
+  form.onsubmit = async event => {
+    event.preventDefault();
+
+    const student = {
+      name: document.getElementById("name").value,
+      rollNo: document.getElementById("rollNo").value,
+      course: document.getElementById("course").value
+    };
+
+    try {
+      await request(
+        editingId ? `/api/students/${editingId}` : "/api/students",
+        {
+          method: editingId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(student)
+        }
+      );
+
+      message.textContent = editingId
+        ? "Student updated successfully."
+        : "Student added successfully.";
+
+      form.reset();
+      editingId = null;
+      document.getElementById("formTitle").textContent = "Add New Student";
+      document.getElementById("submitBtn").textContent = "Add Student";
+      document.getElementById("cancelBtn").hidden = true;
+      await loadStudents();
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  };
+
+  document.getElementById("cancelBtn").onclick = () => {
+    form.reset();
+    editingId = null;
+    document.getElementById("formTitle").textContent = "Add New Student";
+    document.getElementById("submitBtn").textContent = "Add Student";
+    document.getElementById("cancelBtn").hidden = true;
+  };
+
+  loadStudents();
+</script>
+</body>
+</html>
