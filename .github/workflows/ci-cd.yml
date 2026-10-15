@@ -1,4 +1,3 @@
-
 name: Student Management System CI/CD
 
 on:
@@ -26,3 +25,6 @@ jobs:
 
       - name: Run automated tests
         run: npm test
+
+      - name: Build Docker image
+        run: docker build -t student-management-system:latest .
