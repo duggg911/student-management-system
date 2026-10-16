@@ -1,12 +1,46 @@
 
 const express = require("express");
 const path = require("path");
+const client = require("prom-client");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// Prometheus monitoring
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestsTotal = new client.Counter({
+  name: "student_api_requests_total",
+  help: "Total HTTP requests received by the Student Management System",
+  labelNames: ["method", "route", "status"],
+  registers: [register]
+});
+
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    if (req.path !== "/metrics") {
+      httpRequestsTotal.inc({
+        method: req.method,
+        route: req.route?.path || req.path,
+        status: String(res.statusCode)
+      });
+    }
+  });
+  next();
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy", service: "student-management-system" });
+});
+
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
+});
 
 let students = [
   { id: 1, name: "Aarav Sharma", rollNo: "101", course: "Computer Science" },

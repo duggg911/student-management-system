@@ -1,4 +1,3 @@
-
 global:
   scrape_interval: 5s
 
@@ -7,3 +6,8 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["host.docker.internal:8000"]
+
+  - job_name: "student-management-system"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:3000"]
