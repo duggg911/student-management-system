@@ -1,7 +1,7 @@
 
 services:
   student-management:
-    build: .
+    image: smita911/student-management-system:latest
     container_name: student-management-system
     ports:
       - "3000:3000"
