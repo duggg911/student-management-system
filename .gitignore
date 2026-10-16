@@ -2,3 +2,10 @@
 node_modules/
 .env
 coverage/
+
+# Python and MLflow
+ml-monitoring/.venv/
+ml-monitoring/__pycache__/
+ml-monitoring/mlruns/
+ml-monitoring/mlflow.db
+ml-monitoring/.pytest_cache/
